@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Создание портфеля (или задачи)
+// Создать портфель (задачу)
 func CreatePortfolio(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input models.Portfolio
@@ -16,21 +16,27 @@ func CreatePortfolio(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.Create(&input)
+		if err := db.Create(&input).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, input)
 	}
 }
 
-// Получение всех портфелей
+// Получить все портфели
 func ListPortfolios(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var portfolios []models.Portfolio
-		db.Find(&portfolios)
+		if err := db.Find(&portfolios).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, portfolios)
 	}
 }
 
-// Обновление портфеля
+// Изменить портфель
 func UpdatePortfolio(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
@@ -48,11 +54,14 @@ func UpdatePortfolio(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// Удаление портфеля
+// Удалить портфель
 func DeletePortfolio(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		db.Delete(&models.Portfolio{}, id)
+		if err := db.Delete(&models.Portfolio{}, id).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"message": "Portfolio deleted"})
 	}
 }

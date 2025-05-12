@@ -2,9 +2,8 @@ package main
 
 import (
 	"log"
-	"tracker/models"
-
 	"tracker/handlers"
+	"tracker/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -17,25 +16,28 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	err = db.AutoMigrate(&models.User{}, &models.Queue{}, &models.Portfolio{})
-	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
-	}
-	log.Println("Database connected and migrated successfully!")
+	db.AutoMigrate(&models.User{}, &models.Queue{}, &models.Portfolio{})
 
 	r := gin.Default()
-	r.POST("/register", handlers.Register(db))
 
-	r.POST("/queues", handlers.CreateQueue(db))
+	// Пользователи
+	r.POST("/register", handlers.Register(db))
+	r.POST("/login", handlers.Login(db))
+	r.GET("/users", handlers.ListUsers(db))
+	r.PATCH("/users/:id", handlers.AuthMiddleware(), handlers.UpdateUser(db))
+	r.DELETE("/users/:id", handlers.AuthMiddleware(), handlers.DeleteUser(db))
+
+	// Очереди
+	r.POST("/queues", handlers.AuthMiddleware(), handlers.CreateQueue(db))
 	r.GET("/queues", handlers.ListQueues(db))
-	r.PATCH("/queues/:id", handlers.UpdateQueue(db))
-	r.DELETE("/queues/:id", handlers.DeleteQueue(db))
+	r.PATCH("/queues/:id", handlers.AuthMiddleware(), handlers.UpdateQueue(db))
+	r.DELETE("/queues/:id", handlers.AuthMiddleware(), handlers.DeleteQueue(db))
 
 	// Портфели
-	r.POST("/portfolios", handlers.CreatePortfolio(db))
+	r.POST("/portfolios", handlers.AuthMiddleware(), handlers.CreatePortfolio(db))
 	r.GET("/portfolios", handlers.ListPortfolios(db))
-	r.PATCH("/portfolios/:id", handlers.UpdatePortfolio(db))
-	r.DELETE("/portfolios/:id", handlers.DeletePortfolio(db))
+	r.PATCH("/portfolios/:id", handlers.AuthMiddleware(), handlers.UpdatePortfolio(db))
+	r.DELETE("/portfolios/:id", handlers.AuthMiddleware(), handlers.DeletePortfolio(db))
 
 	r.Run(":8080")
 }

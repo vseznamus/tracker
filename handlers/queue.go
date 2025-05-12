@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Создание очереди
+// Создать очередь
 func CreateQueue(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input models.Queue
@@ -16,21 +16,27 @@ func CreateQueue(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.Create(&input)
+		if err := db.Create(&input).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, input)
 	}
 }
 
-// Получение всех очередей
+// Получить все очереди
 func ListQueues(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var queues []models.Queue
-		db.Find(&queues)
+		if err := db.Find(&queues).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, queues)
 	}
 }
 
-// Обновление очереди
+// Изменить очередь
 func UpdateQueue(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
@@ -48,11 +54,14 @@ func UpdateQueue(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// Удаление очереди
+// Удалить очередь
 func DeleteQueue(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		db.Delete(&models.Queue{}, id)
+		if err := db.Delete(&models.Queue{}, id).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"message": "Queue deleted"})
 	}
 }
