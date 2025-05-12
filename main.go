@@ -6,6 +6,7 @@ import (
 	"tracker/models"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -19,6 +20,11 @@ func main() {
 	db.AutoMigrate(&models.User{}, &models.Queue{}, &models.Portfolio{})
 
 	r := gin.Default()
+	r.Static("/static", "./static")
+	r.LoadHTMLGlob("templates/*")
+
+	r.GET("/users_page", UsersPage(db))
+	r.POST("/users_page", UsersPage(db))
 
 	// Пользователи
 	r.POST("/register", handlers.Register(db))
@@ -40,4 +46,49 @@ func main() {
 	r.DELETE("/portfolios/:id", handlers.AuthMiddleware(), handlers.DeletePortfolio(db))
 
 	r.Run(":8080")
+}
+
+func UsersPage(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var users []models.User
+		db.Find(&users)
+
+		if c.Request.Method == "POST" {
+			login := c.PostForm("login")
+			password := c.PostForm("password")
+			fullname := c.PostForm("fullname")
+			role := c.PostForm("role")
+			birthdate := c.PostForm("birthdate")
+			phonenumber := c.PostForm("phonenumber")
+
+			hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+			user := models.User{
+				Login:          login,
+				FullName:       fullname,
+				Role:           role,
+				BirthDate:      birthdate,
+				PhoneNumber:    phonenumber,
+				ActivityStatus: "active",
+				PasswordHash:   string(hash),
+			}
+			if err := db.Create(&user).Error; err != nil {
+				db.Find(&users)
+				c.HTML(200, "users.html", gin.H{
+					"Users": users,
+					"Error": "Ошибка при создании пользователя: " + err.Error(),
+				})
+				return
+			}
+			db.Find(&users)
+			c.HTML(200, "users.html", gin.H{
+				"Users":   users,
+				"Message": "Пользователь успешно добавлен!",
+			})
+			return
+		}
+
+		c.HTML(200, "users.html", gin.H{
+			"Users": users,
+		})
+	}
 }
