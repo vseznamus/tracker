@@ -31,7 +31,7 @@ func main() {
 	r.POST("/login", handlers.Login(db))
 	r.GET("/users", handlers.ListUsers(db))
 	r.PATCH("/users/:id", handlers.AuthMiddleware(), handlers.UpdateUser(db))
-	r.DELETE("/users/:id", handlers.AuthMiddleware(), handlers.DeleteUser(db))
+	r.POST("/users/delete/:id", handlers.AuthMiddleware(), handlers.DeleteUser(db))
 
 	// Очереди
 	r.POST("/queues", handlers.AuthMiddleware(), handlers.CreateQueue(db))
